@@ -1,0 +1,8 @@
+# systemd template unit: one instance per config file.
+#   ~/.config/restock-watch/u5g.conf  ->  systemctl --user enable --now restock-watch@u5g.timer
+[Unit]
+Description=restock-watch (%i)
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/restock-watch.sh -c %h/.config/restock-watch/%i.conf

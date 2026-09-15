@@ -1,0 +1,5 @@
+# restock-watch: poll the shop every 3 minutes.
+# Put this file in /boot/config/plugins/dynamix/ and run `update_cron`.
+# Note: call with "bash <path>" — /boot is FAT and has no exec bit.
+# The entry ends up in /etc/cron.d/root, NOT in `crontab -l`.
+*/3 * * * * bash /boot/config/restock-watch/restock-watch.sh -c /boot/config/restock-watch/u5g.conf &> /dev/null

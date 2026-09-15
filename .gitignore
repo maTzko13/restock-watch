@@ -1,0 +1,3 @@
+# real configs carry tokens — only the example is tracked
+*.conf
+!*.conf.example

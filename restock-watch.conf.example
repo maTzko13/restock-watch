@@ -1,0 +1,86 @@
+# restock-watch configuration — plain shell syntax, sourced by the script.
+# Copy to restock-watch.conf (next to the script) or pass with -c FILE.
+# One file per product; run the script once per file from cron.
+
+# ---- what to watch -----------------------------------------------------------
+NAME="UniFi 5G Backup"                                  # used in messages and for the state dir
+URL="https://eu.store.ui.com/eu/en/products/u5g"
+
+# ERE with ONE capture group. Every match on the page is extracted; the page is
+# "in stock" as soon as any extracted value is NOT in SOLDOUT_VALUES.
+# We deliberately test for leaving the sold-out state instead of matching
+# "Available" — that survives a shop renaming its in-stock label.
+STATUS_REGEX='"status":"([A-Za-z]+)"'
+SOLDOUT_VALUES="SoldOut"                                # space separated, e.g. "SoldOut OutOfStock"
+
+# Optional: a restock date the shop embeds. Leave the regex as is if unsure —
+# no match just shows "unknown" in the sold-out message.
+ETA_REGEX='"restockEtaAt":"([0-9-]+)"'
+
+# Some shops hand a bare curl a different (or empty) page. A browser UA helps.
+USER_AGENT="Mozilla/5.0 (X11; Linux x86_64; rv:130.0) Gecko/20100101 Firefox/130.0"
+TIMEOUT=30
+
+# ---- state and self-monitoring -----------------------------------------------
+# State, failure counter and log. Default: /var/tmp/restock-watch/<slug of NAME>
+# — RAM-backed on many systems, which keeps a 3-minute cron from wearing out a
+# USB stick (Unraid!). After a reboot the watcher starts fresh: worst case one
+# duplicate message, never a missed one.
+#STATE_DIR="/var/tmp/restock-watch/u5g"
+
+# After this many consecutive runs without an extractable status the watcher
+# tells you it is blind (page changed, bot protection, ...). One failure is a
+# network hiccup, not news.
+MAX_FAILURES=5
+NOTIFY_BLIND=1          # 0 = never send the "I am blind" / "recovered" messages
+NOTIFY_SOLDOUT=1        # 0 = only report in-stock, never "sold out again"
+
+# ---- notifications -----------------------------------------------------------
+# Space separated list of channels. Each needs its settings below. Every channel
+# is tried; one failing channel does not stop the others.
+#   telegram ntfy gotify pushover discord slack webhook mail unraid command stdout
+NOTIFY="telegram"
+
+# telegram — bot token + chat id. On Unraid you can leave both EMPTY: the script
+# then reuses the credentials of the Dynamix Telegram agent from
+# /boot/config/plugins/dynamix/telegram/{token,chatid} (set TELEGRAM_UNRAID_FALLBACK=0 to disable).
+TELEGRAM_TOKEN=""
+TELEGRAM_CHAT_ID=""
+
+# ntfy — public ntfy.sh topic or your own server. Token only for protected topics.
+NTFY_URL=""             # e.g. https://ntfy.sh/my-secret-restock-topic
+NTFY_TOKEN=""
+
+# gotify
+GOTIFY_URL=""           # e.g. https://gotify.example.org
+GOTIFY_TOKEN=""         # application token
+
+# pushover
+PUSHOVER_TOKEN=""       # application token
+PUSHOVER_USER=""        # user key
+
+# discord / slack — incoming webhook URLs
+DISCORD_WEBHOOK=""
+SLACK_WEBHOOK=""
+
+# webhook — generic JSON POST {event,name,url,status,eta,message}
+# for Home Assistant, n8n, Node-RED, ...
+WEBHOOK_URL=""
+
+# mail — via local sendmail (or mail) command
+MAIL_TO=""
+#MAIL_FROM="restock-watch@example.org"
+
+# unraid — Unraid's own notification system (/usr/local/emhttp/webGui/scripts/notify),
+# so the alert goes to every agent you configured in the web UI. No settings needed.
+
+# command — your own script/program; gets the message as $1 and the details as
+# RW_EVENT (instock|soldout|blind|recovered|test), RW_NAME, RW_URL, RW_STATUS, RW_ETA.
+NOTIFY_CMD=""
+
+# ---- message templates (optional) --------------------------------------------
+# Placeholders: {name} {url} {status} {eta} {n}
+#MSG_INSTOCK='🛒 {name} ist JETZT bestellbar! Schnell: {url} (Status: {status})'
+#MSG_SOLDOUT='{name} ist wieder ausverkauft (nächster Restock lt. Shop: {eta}). {url}'
+#MSG_BLIND='⚠️ restock-watch: Status von {name} {n}x in Folge nicht lesbar. Ich bin blind. {url}'
+#MSG_RECOVERED='restock-watch sieht {name} wieder (aktuell: {status}).'
